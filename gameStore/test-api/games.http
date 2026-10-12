@@ -1,0 +1,38 @@
+GET http://localhost:5074/games
+
+###
+GET http://localhost:5074/games/6
+
+###
+POST http://localhost:5074/games
+Content-Type: application/json
+
+{
+    "Name": "New Game",
+    "Price": 49.99,
+    "ReleaseYear": "2024",
+    "IsMultiplayer": false,
+    "Genre": "Action",
+    "Platform": "PC",
+    "Developer": "New Developer",
+    "Rating": "8.0"
+}
+
+###
+PUT  http://localhost:5074/games/6
+Content-Type: application/json
+
+{
+    "Name": "Valorant",
+    "Price": 49.99,
+    "ReleaseYear": "2024",
+    "IsMultiplayer": false,
+    "Genre": "Action",
+    "Platform": "PC",
+    "Developer": "Riot Games",
+    "Rating": "8.0"
+}
+
+
+###
+DELETE http://localhost:5074/games/6
