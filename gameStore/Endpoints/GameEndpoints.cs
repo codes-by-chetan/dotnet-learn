@@ -1,5 +1,7 @@
+using gameStore.Data.Context;
+using gameStore.Data.Entities;
 using gameStore.DTOs;
-using gameStore.Mock;
+using Microsoft.EntityFrameworkCore;
 
 namespace gameStore.Endpoints;
 
@@ -10,28 +12,33 @@ public static class GameEndpoints
     public static void MapGameEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/games");
-        var games = GamesData.games;
 
-        group.MapGet("/", () => games);
-
-        group.MapGet("/{id}", (int id) =>
+        group.MapGet("/", async (GameStoreContext db) =>
             {
-                var game = games.Find(game => game.Id == id);
-                if (game is null)
-                {
-                    return Results.NotFound();
-                }
-                return Results.Ok(game);
+                return await db.Games.AsNoTracking().ToListAsync();
+            }
+        );
+
+        group.MapGet("/{id}", async (int id, GameStoreContext db) =>
+            {
+                var game = await db.Games.FindAsync(id);
+                return game is not null ? Results.Ok(game) : Results.NotFound(); ;
             }
         ).WithName(GetGameByIdRouteName);
 
-        group.MapPost("/", (CreateGameDto newGame) =>
-        {
-            GameDto game = new()
+        group.MapPost("/", async (CreateGameDto newGame, GameStoreContext db) =>
+        {   
+            Genre genre = await db.Genres.FirstOrDefaultAsync(g => g.Name == newGame.Genre);
+            if (genre is null)
             {
-                Id = games.Count + 1,
+                genre = new Genre { Name = newGame.Genre };
+                db.Genres.Add(genre);
+                await db.SaveChangesAsync();
+            }
+            Game game = new()
+            {
                 Name = newGame.Name,
-                Genre = newGame.Genre,
+                Genre = genre,
                 Platform = newGame.Platform,
                 Developer = newGame.Developer,
                 ReleaseYear = newGame.ReleaseYear,
@@ -39,31 +46,23 @@ public static class GameEndpoints
                 Rating = newGame.Rating,
                 IsMultiplayer = newGame.IsMultiplayer
             };
-            games.Add(game);
+            db.Games.Add(game);
+
+            await db.SaveChangesAsync(); 
 
             return Results.CreatedAtRoute(GetGameByIdRouteName, new { id = game.Id }, game);
 
         });
 
-        group.MapPut("/{id}", (int id, UpdateGameDto updatedGame) =>
+        group.MapPut("/{id}", async (int id, UpdateGameDto updatedGame, GameStoreContext db) =>
         {
-            var index = games.FindIndex(game => game.Id == id);
-            if (index == -1)
+            var game = await db.Games.FindAsync(id);
+
+            if (game == null)
             {
                 return Results.NotFound();
             }
-            games[index] = new GameDto()
-            {
-                Id = id,
-                Name = updatedGame.Name,
-                Genre = updatedGame.Genre,
-                Platform = updatedGame.Platform,
-                Developer = updatedGame.Developer,
-                ReleaseYear = updatedGame.ReleaseYear,
-                Price = updatedGame.Price,
-                Rating = updatedGame.Rating,
-                IsMultiplayer = updatedGame.IsMultiplayer
-            };
+            game.Name = 
 
             return Results.NoContent();
 
