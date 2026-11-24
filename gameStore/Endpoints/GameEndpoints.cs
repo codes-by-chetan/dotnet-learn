@@ -1,5 +1,6 @@
 using gameStore.Data.Context;
 using gameStore.Data.Entities;
+using gameStore.Data.Utils;
 using gameStore.DTOs;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,20 +16,20 @@ public static class GameEndpoints
 
         group.MapGet("/", async (GameStoreContext db) =>
             {
-                return await db.Games.AsNoTracking().ToListAsync();
+                return await db.Games.Include(g => g.Genre).AsNoTracking().ToListAsync();
             }
         );
 
         group.MapGet("/{id}", async (int id, GameStoreContext db) =>
             {
-                var game = await db.Games.FindAsync(id);
+                var game = await db.Games.Include(g => g.Genre).FirstOrDefaultAsync(g => g.Id == id);
                 return game is not null ? Results.Ok(game) : Results.NotFound(); ;
             }
         ).WithName(GetGameByIdRouteName);
 
         group.MapPost("/", async (CreateGameDto newGame, GameStoreContext db) =>
-        {   
-            Genre genre = await db.Genres.FirstOrDefaultAsync(g => g.Name == newGame.Genre);
+        {
+            Genre? genre = await db.Genres.FirstOrDefaultAsync(g => g.Name == newGame.Genre);
             if (genre is null)
             {
                 genre = new Genre { Name = newGame.Genre };
@@ -48,7 +49,7 @@ public static class GameEndpoints
             };
             db.Games.Add(game);
 
-            await db.SaveChangesAsync(); 
+            await db.SaveChangesAsync();
 
             return Results.CreatedAtRoute(GetGameByIdRouteName, new { id = game.Id }, game);
 
@@ -62,16 +63,30 @@ public static class GameEndpoints
             {
                 return Results.NotFound();
             }
-            game.Name = 
-
+            if (updatedGame.Genre != null)
+            {
+                Genre? genre = await db.Genres.FirstOrDefaultAsync(g => g.Name == updatedGame.Genre);
+                if (genre is null)
+                {
+                    genre = new Genre { Name = updatedGame.Genre };
+                    db.Genres.Add(genre);
+                    await db.SaveChangesAsync();
+                }
+                
+            }
+            game.PatchFrom(updatedGame, db, "Genre");
+            await db.SaveChangesAsync();
             return Results.NoContent();
 
         });
 
-        group.MapDelete("/{id}", (int id) =>
+        group.MapDelete("/{id}", async (int id, GameStoreContext db) =>
         {
-            games.RemoveAll(game => game.Id == id);
-
+            var count = await db.Games.Where(g => g.Id == id ).ExecuteDeleteAsync();
+            if (count == 0)
+            {
+                return Results.NotFound();
+            }
             return Results.NoContent();
         });
 

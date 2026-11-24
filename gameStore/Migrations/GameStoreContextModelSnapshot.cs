@@ -9,8 +9,8 @@ using gameStore.Data.Context;
 
 namespace gameStore.Migrations
 {
-    [DbContext(typeof(GameStorecontext))]
-    partial class GameStorecontextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(GameStoreContext))]
+    partial class GameStoreContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {

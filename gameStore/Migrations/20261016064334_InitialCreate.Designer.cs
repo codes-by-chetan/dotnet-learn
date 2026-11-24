@@ -10,8 +10,8 @@ using gameStore.Data.Context;
 
 namespace gameStore.Migrations
 {
-    [DbContext(typeof(GameStorecontext))]
-    [Migration("20261014114142_InitialCreate")]
+    [DbContext(typeof(GameStoreContext))]
+    [Migration("20261016064334_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
